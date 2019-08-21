@@ -1,0 +1,36 @@
+/**
+   *@memberof module:ifb/alm/cfe/cfg
+*/
+PROCEDURE "test_2.db.procs::FindReferenceDateM" 
+(in firstPaymentDate date, in period int, in lastDayOfMonthIndicator nvarchar(1),
+out referenceDate date, out periodsSinceReferenceDate int)
+   LANGUAGE SQLSCRIPT
+   SQL SECURITY INVOKER
+   --DEFAULT SCHEMA <default_schema_name>
+   READS SQL DATA AS
+BEGIN
+   /*************************************
+       Write your procedure logic 
+   *************************************/
+
+
+periodsSinceReferenceDate := 0;
+referenceDate := :firstPaymentDate;
+
+if :period != 12 then
+
+    while (dayofmonth(last_day(:referenceDate)) < 31 and periodsSinceReferenceDate < 3) do
+        periodsSinceReferenceDate := :periodsSinceReferenceDate + 1;
+        referenceDate := add_months(:firstPaymentDate, - period * periodsSinceReferenceDate);
+    end while;    
+        
+
+end if;
+
+if :lastDayOfMonthIndicator = 'X' then
+    
+    referenceDate := last_day(:referenceDate);
+
+end if;
+
+END

@@ -1,0 +1,96 @@
+FUNCTION "test_2.db.functions::fixedPrincipalSmall"( in currentContractId nvarchar(40), in currentStartDate date, in currentEndDate date, in currentInterestRate double, in currentBalance double)
+       RETURNS table("CONTRACT_ID" nvarchar(40),  "PAYMENT_DATE" date, "AMOUNT_PRINCIPAL" double, "AMOUNT_INTEREST" double, "OUTSTANDING_BALANCE" double, "TIMESTAMP" timestamp)
+       LANGUAGE SQLSCRIPT 
+       SQL SECURITY INVOKER AS 
+BEGIN 
+
+
+
+
+
+ declare /*currentEndDate,*/ nextPaymentDate, lastPaymentDate, currentFirstPaymentDate, referenceDate, thisPDate, startDate, endDate date;
+ declare dayCountFactor, /* currentBalance, currentInterestRate,*/ currentPaymentAmount, lastBalance, monthlyPaymentAmount double;
+ declare currentDaycountNumerator, currentDaycountDenominator, itemCount, contractCounter, periodsSinceReferenceDate, currentPeriodPrincipal, skipVar, i, payOffMonths int;
+ declare currentLastDayIndicator nvarchar(3);
+ --declare timestampVar timestamp;
+ --declare currentContractId nvarchar(40);
+ declare paymentDate date array;
+ declare amountInterest, amountPrincipal double array;
+ declare outstandingBalance double array;
+ declare contractId nvarchar(40) array;
+ 
+ declare firstArray int array;
+ declare timestampAr timestamp array;
+  /* 
+currentContractId := 'a0005';
+currentStartDate := '20180101';
+currentEndDate := '20200101';
+currentInterestRate := .10;
+currentBalance := 1000000;
+*/
+
+
+	payOffMonths := round(days_between(:currentStartDate, :currentEndDate)/30,0)+1;
+	currentPaymentAmount := round(:currentBalance/(days_between(:currentStartDate, :currentEndDate)/30),0);
+
+	
+	
+	monthlyPaymentAmount := :currentBalance/:payOffMonths;
+	
+	lastBalance := :currentBalance;
+
+
+--select :payOffMonths as pom from "TEST_2_HDI_DB_1"."test_2.db.tables::CashFlowEngine.DUMMY_ROW";
+/*
+select :payOffMonths as pom from "TEST_2_HDI_DB_1"."test_2.db.tables::CashFlowEngine.DUMMY_ROW";
+*/
+	for i in 1 .. :payOffMonths do
+		
+		
+		
+		
+	
+		
+		--calculate paymentdate...always first of the month...
+		thisPDate := add_months(:currentStartDate, :i);
+		--thisPDate := add_months(:currentStartDate, (:payOffMonths - :i)) ;      --(subtract i from payOffMonths) and add months of difference to currentStartDate
+		
+		
+		--arrays needed to fill
+		contractId[:i] := :currentContractId;
+		paymentDate[:i] := :thisPDate;
+		amountPrincipal[:i] := :lastBalance - :currentPaymentAmount;
+		amountInterest[:i] := :currentInterestRate * :lastBalance /12;
+		outstandingBalance[:i] := :lastBalance - :currentPaymentAmount;
+		timestampAr[:i] := current_timestamp;
+		lastBalance := :lastBalance - :currentPaymentAmount;
+		
+
+		
+	
+	end for;
+
+	--	select :currentContractId as "contract" from "TEST_2_HDI_DB_1"."test_2.db.tables::CashFlowEngine.DUMMY_ROW";
+
+	tmpLoad = unnest (:contractId, :paymentDate, :amountPrincipal, :amountInterest, :outstandingBalance, :timestampAr ) as ("CONTRACT_ID",  "PAYMENT_DATE", "AMOUNT_PRINCIPAL", "AMOUNT_INTEREST", "OUTSTANDING_BALANCE", "TIMESTAMP");
+
+	--insert into "test_2.db.tables::CashFlowEngine.DUMMY_ROW"("COUNTER") select "COUNTER" from :tmpLoad;
+
+
+/*
+	payments = 
+			select  
+				:currentContractId as contract_id,
+				:currentFirstPaymentDate as payment_date, 
+				-:currentBalance as amount_principal,  
+				0 as amount_interest,
+				:currentBalance as outstanding_balance
+        --from dummy;
+        	from "test_2.db.tables::CashFlowEngine.DUMMY_ROW";
+*/
+return
+select "CONTRACT_ID",  "PAYMENT_DATE", "AMOUNT_PRINCIPAL", "AMOUNT_INTEREST", "OUTSTANDING_BALANCE", "TIMESTAMP" from :tmpLoad;
+
+
+    
+END;

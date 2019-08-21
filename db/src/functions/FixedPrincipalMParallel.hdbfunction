@@ -1,0 +1,157 @@
+/**
+   *@memberof ifb/alm/cfe/cfg 
+*/
+
+/**
+  * This view calculates fixed principle cash flows with a monthly-based payment schedule.
+   * The procedure has two input parameters.
+  * @param {date} i_BusinessDate This is the business date, which specifies, for what data the calculation is to be executed.
+  * @param {date} i_SystemTime - This is the system time, for which the view is to be executed.
+*/
+FUNCTION "test_2.db.functions::FixedPrincipalMParallel" (in i_BusinessDate date,  in i_Batch_Min int, in i_Batch_Max int)
+RETURNS table ("CONTRACT_ID" nvarchar(40), "ITEM_NUMBER" int, "PAYMENT_DATE" date, "AMOUNT_PRINCIPAL" double, "AMOUNT_INTEREST" double, "OUTSTANDING_BALANCE" double)
+LANGUAGE SQLSCRIPT 
+SQL SECURITY INVOKER AS 
+BEGIN 
+/*****************************  
+	Write your function logic  
+ *****************************/ 
+
+ declare currentEndDate, nextPaymentDate, lastPaymentDate, currentFirstPaymentDate, referenceDate date;
+ declare dayCountFactor, currentBalance, currentInterestRate, currentPaymentAmount double;
+ declare currentDaycountNumerator, currentDaycountDenominator, itemCount, contractCounter, periodsSinceReferenceDate, currentPeriodPrincipal, skipVar int;
+ declare currentLastDayIndicator nvarchar(3);
+ declare currentContractId nvarchar(40);
+ declare paymentDate date array;
+ declare amountInterest, amountPrincipal double array;
+ declare outstandingBalance double array;
+ declare contractId nvarchar(40) array;
+
+
+ inputData =
+			select 
+				"CONTRACT_ID",
+				"START_DATE",
+				"END_DATE",
+				"DISBURSEMENT_DATE", 
+				"FIRST_PAYMENT_DATE",
+				"BALANCE",
+				"NOMINAL_AMOUNT",
+				"INTEREST_RATE",
+				"INTEREST_SPREAD",
+				"LAST_DAY_INDICATOR",
+				"PERIOD_PRINCIPAL",
+				"PAYMENT_AMOUNT"
+			from "test_2.db.functions::AccessConditions"(I_BUSINESSDATE => :i_BusinessDate/*<DATE>*/,
+	                                                           I_BATCHMIN => :i_Batch_Min/*<INTEGER>*/,
+	                                                           I_BATCHMAX => :i_Batch_Max/*<INTEGER>*/) 
+			where "REPAYMENT_TYPE"='P'
+			and "PERIOD_PRINCIPAL_UNIT" = 'M'
+			;
+
+firstPayment = 
+			select  
+				"CONTRACT_ID" as contract_id,
+				"DISBURSEMENT_DATE" as payment_date, 
+				-"BALANCE" as amount_principal,  
+				0 as amount_interest,
+				"BALANCE" as outstanding_balance
+        	from :inputData;
+
+itemCount := 1; --while loop iteration, must be set outside of loops so that no records are overwritten
+
+--      ***  all variables beginning with 'current' remain static for entire FOR loop  ***
+
+ for contractCounter in 1..record_count(:inputData) do
+	currentContractId := :inputData."CONTRACT_ID"[:contractCounter];
+	currentFirstPaymentDate := :inputData."FIRST_PAYMENT_DATE"[:contractCounter];
+	currentPeriodPrincipal := :inputData."PERIOD_PRINCIPAL"[:contractCounter];
+	currentLastDayIndicator := :inputData."LAST_DAY_INDICATOR"[:contractCounter];
+	currentEndDate := :inputData."END_DATE"[:contractCounter];
+	currentInterestRate := :inputData."INTEREST_RATE"[:contractCounter];
+	currentBalance := :inputData."BALANCE"[:contractCounter];
+    currentPaymentAmount := :inputData."PAYMENT_AMOUNT"[:contractCounter]; --this can be taken out?
+
+	call "test_2.db.procs::FindReferenceDateM"(:currentFirstPaymentDate, :currentPeriodPrincipal, :currentLastDayIndicator, referenceDate, periodsSinceReferenceDate);
+	-- below 2 lines are set so that dayCountFactor can be calc'd
+
+	nextPaymentDate := :currentFirstPaymentDate;   --A
+	lastPaymentDate := :inputData."START_DATE"[:contractCounter];  --B
+
+	
+	
+	skipVar:= -1;
+	if :currentDaycountNumerator = 2 and :lastPaymentDate != add_months(:referenceDate, (:periodsSinceReferenceDate - 1)*:currentPeriodPrincipal)  then --  this means need portion of a 30 day period proportional to the add_days(:referenceDate(days_between(nextPaymentDate,lastPaymentDate))/last_day
+		skipVar := :currentDaycountNumerator;
+		currentDaycountNumerator := 1 ;
+	end if;
+	
+	
+		while :nextPaymentDate < :currentEndDate and :currentBalance > 0 do
+			contractId[:itemCount] := :currentContractId;
+			paymentDate[:itemCount] := :nextPaymentDate;
+			
+			-- call "ifb.alm.cfe.cfg.procs::DaycountFactor" ( :lastPaymentDate, :nextPaymentDate, :currentDaycountNumerator, :currentDaycountDenominator, :currentPeriodPrincipal, daycountFactor);
+			
+			if :skipVar != -1 then
+				currentDaycountNumerator := :skipVar;
+				skipVar := -1;
+			end if;
+            
+			amountInterest[:itemCount] := :currentInterestRate * :currentBalance;
+			amountPrincipal[:itemCount] := :currentPaymentAmount;
+			
+			if :amountPrincipal[:itemCount] >= :currentBalance then
+			    break;
+			end if;
+			outstandingBalance[:itemCount] := :currentBalance - :amountPrincipal[:itemCount];
+			currentBalance := :outstandingBalance[:itemCount];
+			lastPaymentDate := :nextPaymentDate;
+			--return next payment date, periodsSinceReferenceDate is inout and incremented in procedure
+			call "test_2.db.procs::NextPaymentDateM" (:referenceDate, :currentPeriodPrincipal, :periodsSinceReferenceDate, nextPaymentDate); --nextPaymentDate and incremented periodsSinceReferenceDate is returned
+			itemCount := :itemCount + 1;
+		end while;
+
+if :nextPaymentDate >= :currentEndDate or :amountPrincipal[:itemCount] >= :currentBalance then
+	paymentDate[:itemCount] := :currentEndDate;
+	contractId[:itemCount] := :currentContractId;
+	
+--call dayCount
+	--call "ifb.alm.cfe.cfg.procs::DaycountFactor" ( :lastPaymentDate, :currentEndDate, :currentDaycountNumerator, :currentDaycountDenominator, :currentPeriodPrincipal, daycountFactor);
+
+	amountInterest[:itemCount] := :currentInterestRate * :currentBalance;   /* :dayCountFactor * :currentInterestRate * :currentBalance; */
+	amountPrincipal[:itemCount] := :currentBalance;
+	outstandingBalance[:itemCount] := 0;
+
+
+end if;
+
+itemCount := :itemCount + 1;
+
+end for; 
+
+middlePayments = unnest(:contractId, :paymentDate, :amountPrincipal, :amountInterest, :outstandingBalance) 
+				as ("CONTRACT_ID", "PAYMENT_DATE", "AMOUNT_PRINCIPAL", "AMOUNT_INTEREST", "OUTSTANDING_BALANCE");
+
+
+
+--unions together the 3 temp tables and gives item numbers per contractId from oldest paymentDate to most recent
+finalUnion = 
+			select 
+				"CONTRACT_ID",
+				ROW_NUMBER() OVER (PARTITION BY "CONTRACT_ID" ORDER BY PAYMENT_DATE ASC) as "ITEM_NUMBER",
+				"PAYMENT_DATE",
+				sum("AMOUNT_PRINCIPAL") as "AMOUNT_PRINCIPAL",
+				sum("AMOUNT_INTEREST") as "AMOUNT_INTEREST",
+				"OUTSTANDING_BALANCE"
+			from		(select "CONTRACT_ID", "PAYMENT_DATE", "AMOUNT_PRINCIPAL", "AMOUNT_INTEREST", "OUTSTANDING_BALANCE"
+						from :firstPayment
+						union all
+						select "CONTRACT_ID", "PAYMENT_DATE", "AMOUNT_PRINCIPAL", "AMOUNT_INTEREST", "OUTSTANDING_BALANCE"
+						from :middlePayments)
+			group by "CONTRACT_ID","PAYMENT_DATE","OUTSTANDING_BALANCE"
+			order by "ITEM_NUMBER" ASC;
+						
+return :finalUnion;
+END;
+

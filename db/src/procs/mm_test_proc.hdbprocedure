@@ -1,0 +1,31 @@
+PROCEDURE "test_2.db.procs::mm_test_proc"( out ctract table(   "BUSINESS_DATE_FROM" varchar,
+																"BUSINESS_DATE_TO" varchar,
+																"TIMESTAMP_FROM" varchar,
+																"TIMESTAMP_TO" varchar,
+																"CONTRACT_ID" nvarchar(40),
+																"SRC_ID" varchar,
+																"NOMINAL_AMOUNT" double,
+																"BALANCE" double)
+	
+)
+   LANGUAGE SQLSCRIPT
+   SQL SECURITY INVOKER
+   --DEFAULT SCHEMA <default_schema_name>
+   READS SQL DATA AS
+BEGIN
+   /*************************************
+       Write your procedure logic 
+   *************************************/
+   ctract = 
+   select 
+   "BUSINESS_DATE_FROM",
+	"BUSINESS_DATE_TO",
+	"TIMESTAMP_FROM",
+	"TIMESTAMP_TO",
+	"CONTRACT_ID",
+	"SRC_ID",
+	"NOMINAL_AMOUNT",
+	"BALANCE"
+   from "test_2.db.tables::CashFlowEngine.CONDITIONS";
+   
+END

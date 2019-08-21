@@ -1,0 +1,46 @@
+PROCEDURE "test_2.db.procs::runBp5"(out bp5_payments table("CONTRACT_ID" nvarchar(40),  "PAYMENT_DATE" date, "AMOUNT_PRINCIPAL" double, "AMOUNT_INTEREST" double, "OUTSTANDING_BALANCE" double, "TIMESTAMP" timestamp)  )
+   LANGUAGE SQLSCRIPT
+   SQL SECURITY INVOKER
+   --DEFAULT SCHEMA <default_schema_name>
+   --READS SQL DATA 
+   AS
+BEGIN
+   /*************************************
+       Write your procedure logic  
+   *************************************/
+   
+   		delete from "test_2.db.tables::CashFlowEngine.DUMMY_ROW";
+		
+		insert into "test_2.db.tables::CashFlowEngine.DUMMY_ROW" values(1);
+   
+   
+   		one = 
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(1/*BATCH_MIN <INTEGER>*/,
+		                                                                                      20/*BATCH_MAX <INTEGER>*/);
+		two = 
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(21/*BATCH_MIN <INTEGER>*/,
+		                                                                                      40/*BATCH_MAX <INTEGER>*/);
+		three =                                                                                       
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(41/*BATCH_MIN <INTEGER>*/,
+		                                                                                      60/*BATCH_MAX <INTEGER>*/);
+		four =                                                                                      
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(61/*BATCH_MIN <INTEGER>*/,
+		                                                                                      80/*BATCH_MAX <INTEGER>*/);
+		five =                                                                             
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(81/*BATCH_MIN <INTEGER>*/,
+		                                                                                      100/*BATCH_MAX <INTEGER>*/);
+                                                                                      
+        bp5_payments=                                                                              
+        select * from :one
+        union all select * from :two
+        union all select * from :three
+        union all select * from :four
+        union all select * from :five;
+        
+--        delete from "test_2.db.tables::CashFlowEngine.DUMMY_ROW";
+--        insert into "test_2.db.tables::CashFlowEngine.DUMMY_ROW" values (1);
+        
+        --bp5_payments = select * from :five;  --debugging
+        --select 'abc' as "CONTRACT_ID",'20180101' as "PAYMENT_DATE", 100000 as "AMOUNT_PRINCIPAL", .05 as "AMOUNT_INTEREST", 100 as "OUTSTANDING_BALANCE", '99991231' as "TIMESTAMP" from "test_2.db.tables::CashFlowEngine.DUMMY_ROW";
+   
+END

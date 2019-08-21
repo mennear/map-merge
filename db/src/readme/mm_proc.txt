@@ -1,0 +1,47 @@
+do 
+begin
+
+
+declare i int;
+declare currentContractId nvarchar(40);
+declare currentStartDate, currentEndDate date;
+declare currentInterestRate, currentBalance double;
+
+
+allConditions = select * from "test_2.db.tables::CashFlowEngine.MINI_CONDITIONS";
+
+
+
+for i in 1 .. record_count(:allConditions) DO
+
+	currentContractId := :allConditions."CONTRACT_ID"[:i];
+	currentBalance := :allConditions."BALANCE"[:i];
+	currentInterestRate := :allConditions."INTEREST_RATE"[:i];
+	currentStartDate := :allConditions."START_DATE"[:i];
+	currentEndDate := :allConditions."END_DATE"[:i];
+
+	
+	CALL "TEST_2_HDI_DB_1"."test_2.db.procs::fixedPrincipalSmall"(
+		CURRENTCONTRACTID => :currentContractId/*<NVARCHAR(40)>*/,
+		CURRENTSTARTDATE => :currentStartDate/*<DATE>*/,
+		CURRENTENDDATE => :currentEndDate/*<DATE>*/,
+		CURRENTINTERESTRATE => :currentInterestRate/*<DOUBLE>*/,
+		CURRENTBALANCE => :currentBalance/*<DOUBLE>*/,
+		PAYMENTS => chicken
+	);
+/*
+				"CONTRACT_ID",
+				"BALANCE",
+				"INTEREST_RATE",
+				"BATCH",
+				"START_DATE",
+				"END_DATE"
+
+*/
+
+
+end for;
+
+select * from :chicken;
+
+end;

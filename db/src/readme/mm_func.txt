@@ -1,0 +1,21 @@
+do 
+begin
+
+declare currentContractId nvarchar(40);
+declare currentStartDate, currentEndDate date;
+declare currentInterestRate, currentBalance double;
+
+allConditions = select * from "test_2.db.tables::CashFlowEngine.MINI_CONDITIONS";
+
+
+table_out =
+MAP_MERGE(:allConditions ,"test_2.db.functions::fixedPrincipalSmall"(:allConditions."CONTRACT_ID"[:i]/*CURRENTCONTRACTID <NVARCHAR(40)>*/,
+                                                                           :allConditions."START_DATE"[:i]/*CURRENTSTARTDATE <DATE>*/,
+                                                                           :allConditions."END_DATE"[:i]/*CURRENTENDDATE <DATE>*/,
+                                                                           :allConditions."INTEREST_RATE"/*CURRENTINTERESTRATE <DOUBLE>*/,
+                                                                           :allConditions."BALANCE"[:i]/*CURRENTBALANCE <DOUBLE>*/));
+
+
+select count(*) from :table_out;
+
+end;

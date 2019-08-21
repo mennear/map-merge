@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Calculation:scenario xmlns:Calculation="http://www.sap.com/ndb/BiModelCalculation.ecore" id="test_2.db.views::test_view" applyPrivilegeType="NONE" dataCategory="CUBE" schemaVersion="3.0" outputViewType="Aggregation" cacheInvalidationPeriod="NONE" enforceSqlExecution="false">
+<descriptions defaultDescription="test_view"/>
+<localVariables/>
+<variableMappings/>
+<dataSources>
+  <DataSource id="test_2.db.tables::CashFlowEngine.MINI_CONDITIONS">
+    <resourceUri>test_2.db.tables::CashFlowEngine.MINI_CONDITIONS</resourceUri>
+  </DataSource>
+</dataSources>
+<calculationViews/>
+<logicalModel id="test_2.db.tables::CashFlowEngine.MINI_CONDITIONS">
+  <attributes>
+    <attribute id="CONTRACT_ID" order="2" displayAttribute="false" attributeHierarchyActive="false">
+      <descriptions defaultDescription="CONTRACT_ID"/>
+      <keyMapping columnObjectName="CashFlowEngine.MINI_CONDITIONS" columnName="CONTRACT_ID"/>
+    </attribute>
+    <attribute id="START_DATE" order="6" displayAttribute="false" attributeHierarchyActive="false">
+      <descriptions defaultDescription="START_DATE"/>
+      <keyMapping columnObjectName="CashFlowEngine.MINI_CONDITIONS" columnName="START_DATE"/>
+    </attribute>
+    <attribute id="END_DATE" order="7" displayAttribute="false" attributeHierarchyActive="false">
+      <descriptions defaultDescription="END_DATE"/>
+      <keyMapping columnObjectName="CashFlowEngine.MINI_CONDITIONS" columnName="END_DATE"/>
+    </attribute>
+  </attributes>
+  <calculatedAttributes/>
+  <baseMeasures>
+    <measure id="ID" order="1" aggregationType="sum" measureType="simple">
+      <descriptions defaultDescription="ID"/>
+      <measureMapping columnObjectName="CashFlowEngine.MINI_CONDITIONS" columnName="ID"/>
+    </measure>
+    <measure id="INTEREST_RATE" order="3" aggregationType="sum" measureType="simple">
+      <descriptions defaultDescription="INTEREST_RATE"/>
+      <measureMapping columnObjectName="CashFlowEngine.MINI_CONDITIONS" columnName="INTEREST_RATE"/>
+    </measure>
+    <measure id="BALANCE" order="4" aggregationType="sum" measureType="simple">
+      <descriptions defaultDescription="BALANCE"/>
+      <measureMapping columnObjectName="CashFlowEngine.MINI_CONDITIONS" columnName="BALANCE"/>
+    </measure>
+    <measure id="BATCH" order="5" aggregationType="sum" measureType="simple">
+      <descriptions defaultDescription="BATCH"/>
+      <measureMapping columnObjectName="CashFlowEngine.MINI_CONDITIONS" columnName="BATCH"/>
+    </measure>
+  </baseMeasures>
+  <calculatedMeasures/>
+  <restrictedMeasures/>
+  <localDimensions/>
+</logicalModel>
+<layout>
+  <shapes>
+    <shape expanded="true" modelObjectName="Output" modelObjectNameSpace="MeasureGroup">
+      <upperLeftCorner x="40" y="85"/>
+    </shape>
+  </shapes>
+</layout>
+</Calculation:scenario>

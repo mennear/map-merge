@@ -1,0 +1,261 @@
+PROCEDURE "test_2.db.procs::v2runMapMergeVBatchTest"(out test_results table("TEST_NAME" nvarchar(40), "DATA_VOLUME" int, "RUNTIME" double))
+   LANGUAGE SQLSCRIPT
+   SQL SECURITY INVOKER
+   --DEFAULT SCHEMA <default_schema_name>
+   --READS SQL DATA 
+   AS
+BEGIN
+   /*************************************
+       Write your procedure logic 
+   *************************************/
+   
+   declare count_out, i, currentDataVolume int;
+   declare mmRuntime10K, mmRuntime15K, mmRuntime20K, mmRuntime25K, mmRuntime30K, mmRuntime50K double;
+   declare b5Runtime10K, b5Runtime15K, b5Runtime20K, b5Runtime25K, b5Runtime30K, b5Runtime50K double;
+   declare b10Runtime10K, b10Runtime15K, b10Runtime20K, b10Runtime25K, b10Runtime30K, b10Runtime50K double;
+   declare b15Runtime10K, b15Runtime15K, b15Runtime20K, b15Runtime25K, b15Runtime30K, b15Runtime50K double;
+   declare b20Runtime10K, b20Runtime15K, b20Runtime20K, b20Runtime25K, b20Runtime30K, b20Runtime50K double;
+   declare dataVolumeArray int array = ARRAY(5000, 7000, 900, 1100, 1300, 1500, 1700, 2000);
+   --declare dataVolumeArray int array = ARRAY(10000,15000,20000,25000,30000,50000);
+   declare MMtimeDifference double;
+   declare BP5timeDifference double;
+   declare BP10timeDifference double;
+   declare BP15timeDifference double;
+   declare BP20timeDifference double;
+   declare MMminTStamp, MMmaxTStamp timestamp;
+      declare BP5minTStamp, BP5maxTStamp timestamp;
+         declare BP10minTStamp, BP10maxTStamp timestamp;
+            declare BP15minTStamp, BP15maxTStamp timestamp;
+               declare BP20minTStamp, BP20maxTStamp timestamp;
+   declare currentTestName nvarchar(40);
+   declare mmTestNameAr nvarchar(40) array;
+   declare mmTestRuntimeAr double array;
+   declare mmTestDataVolumeAr int array;
+   declare bp5TestNameAr nvarchar(40) array;
+   declare bp5TestRuntimeAr double array;
+   declare bp5TestDataVolumeAr int array;
+   declare bp10TestNameAr nvarchar(40) array;
+   declare bp10TestRuntimeAr double array;
+   declare bp10TestDataVolumeAr int array;
+      declare bp15TestNameAr nvarchar(40) array;
+   declare bp15TestRuntimeAr double array;
+   declare bp15TestDataVolumeAr int array;
+      declare bp20TestNameAr nvarchar(40) array;
+   declare bp20TestRuntimeAr double array;
+   declare bp20TestDataVolumeAr int array;
+   
+	
+--	for i in 1..cardinality(:dataVolumeArray) do
+	
+		--delete from "test_2.db.tables::CashFlowEngine.DUMMY_ROW";
+		
+		--insert into "test_2.db.tables::CashFlowEngine.DUMMY_ROW" values(1);
+	
+	
+	
+	
+	
+	
+	--begin main block...
+	
+		currentDataVolume := :dataVolumeArray[1];
+	
+	    --CALL "test_2.db.procs::miniCustConditionsLoad"(MAX_ROWS => 100/*<INTEGER>*/,CONDITIONS_COUNT => count_out);
+		CALL "test_2.db.procs::miniCustConditionsLoad"(MAX_ROWS => :currentDataVolume/*<INTEGER>*/,CONDITIONS_COUNT => count_out);
+	
+		allConditions = select * from "test_2.db.tables::CashFlowEngine.MINI_CONDITIONS";
+	
+	
+		-- run mapmerge function here
+		currentTestName := 'Map Merge';
+		
+		CALL "test_2.db.procs::runMM"(MM_PAYMENTS => mmOut1);
+		
+		select max("TIMESTAMP") into MMmaxTStamp from :mmOut1;
+		select min("TIMESTAMP") into MMminTStamp from :mmOut1;
+		
+		--timeDifference := NANO100_BETWEEN(:minTStamp,:maxTStamp);
+		MMtimeDifference := NANO100_BETWEEN(:MMminTStamp,:MMmaxTStamp)/10000000;
+		--timeDifference := seconds_BETWEEN(:minTStamp,:maxTStamp);
+		
+		
+		mmTestRunTimeAr[1] := :MMtimeDifference;
+		mmTestNameAr[1] := :currentTestname;
+		mmTestDataVolumeAr[1] := :currentDataVolume;
+
+
+	-- 5 batches
+		currentTestName := '5 Batch Procedure';
+		--already reads conditions table here...
+		CALL "test_2.db.procs::runBp5"(BP5_PAYMENTS => bp5Out1);
+
+		select max("TIMESTAMP") into BP5maxTStamp from :bp5Out1;
+		select min("TIMESTAMP") into BP5minTStamp from :bp5Out1;
+		
+		BP5timeDifference := NANO100_BETWEEN(:BP5minTStamp,:BP5maxTStamp)/10000000;
+		
+		bp5TestRunTimeAr[1] := :BP5timeDifference;
+		bp5TestNameAr[1] := :currentTestname;
+		bp5TestDataVolumeAr[1] := :currentDataVolume;
+		
+		
+	-- 10 batches
+		currentTestName := '10 Batch Procedure';
+
+		CALL "test_2.db.procs::runBp10"(BP10_PAYMENTS => bp10Out1);
+				
+		select max("TIMESTAMP") into BP10maxTStamp from :bp10Out1;
+		select min("TIMESTAMP") into BP10minTStamp from :bp10Out1;
+		
+		BP10timeDifference := NANO100_BETWEEN(:BP10minTStamp,:BP10maxTStamp)/10000000;
+
+		bp10TestRunTimeAr[1] := :BP10timeDifference;
+		bp10TestNameAr[1] := :currentTestname;
+		bp10TestDataVolumeAr[1] := :currentDataVolume;
+
+	
+	-- 15 batches
+		currentTestName := '15 Batch Procedure';
+		
+		CALL "test_2.db.procs::runBp15"(BP15_PAYMENTS => bp15Out1);
+				
+		select max("TIMESTAMP") into BP15maxTStamp from :bp15Out1;
+		select min("TIMESTAMP") into BP15minTStamp from :bp15Out1;
+		
+		BP15timeDifference := NANO100_BETWEEN(:BP15minTStamp,:BP15maxTStamp)/10000000;
+
+		bp15TestRunTimeAr[1] := :BP15timeDifference;
+		bp15TestNameAr[1] := :currentTestname;
+		bp15TestDataVolumeAr[1] := :currentDataVolume;
+	
+	
+	-- 20 batches
+		currentTestName := '20 Batch Procedure';
+
+		CALL "test_2.db.procs::runBp20"(BP20_PAYMENTS => bp20Out1);
+				
+		select max("TIMESTAMP") into BP20maxTStamp from :bp20Out1;
+		select min("TIMESTAMP") into BP20minTStamp from :bp20Out1;
+		
+		BP20timeDifference := NANO100_BETWEEN(:BP20minTStamp,:BP20maxTStamp)/10000000;
+
+		bp20TestRunTimeAr[1] := :BP20timeDifference;
+		bp20TestNameAr[1] := :currentTestname;
+		bp20TestDataVolumeAr[1] := :currentDataVolume;
+	
+	--end main block...
+	
+	
+	
+			currentDataVolume := :dataVolumeArray[2];
+	
+	    --CALL "test_2.db.procs::miniCustConditionsLoad"(MAX_ROWS => 100/*<INTEGER>*/,CONDITIONS_COUNT => count_out);
+		CALL "test_2.db.procs::miniCustConditionsLoad"(MAX_ROWS => :currentDataVolume/*<INTEGER>*/,CONDITIONS_COUNT => count_out);
+	
+		allConditions = select * from "test_2.db.tables::CashFlowEngine.MINI_CONDITIONS";
+	
+	
+		-- run mapmerge function here
+		currentTestName := 'Map Merge';
+		
+		CALL "test_2.db.procs::runMM"(MM_PAYMENTS => mmOut1);
+		
+		select max("TIMESTAMP") into MMmaxTStamp from :mmOut1;
+		select min("TIMESTAMP") into MMminTStamp from :mmOut1;
+		
+		--timeDifference := NANO100_BETWEEN(:minTStamp,:maxTStamp);
+		MMtimeDifference := NANO100_BETWEEN(:MMminTStamp,:MMmaxTStamp)/10000000;
+		--timeDifference := seconds_BETWEEN(:minTStamp,:maxTStamp);
+		
+		
+		mmTestRunTimeAr[2] := :MMtimeDifference;
+		mmTestNameAr[2] := :currentTestname;
+		mmTestDataVolumeAr[2] := :currentDataVolume;
+
+
+	-- 5 batches
+		currentTestName := '5 Batch Procedure';
+		--already reads conditions table here...
+		CALL "test_2.db.procs::runBp5"(BP5_PAYMENTS => bp5Out1);
+
+		select max("TIMESTAMP") into BP5maxTStamp from :bp5Out1;
+		select min("TIMESTAMP") into BP5minTStamp from :bp5Out1;
+		
+		BP5timeDifference := NANO100_BETWEEN(:BP5minTStamp,:BP5maxTStamp)/10000000;
+		
+		bp5TestRunTimeAr[2] := :BP5timeDifference;
+		bp5TestNameAr[2] := :currentTestname;
+		bp5TestDataVolumeAr[2] := :currentDataVolume;
+		
+		
+	-- 10 batches
+		currentTestName := '10 Batch Procedure';
+
+		CALL "test_2.db.procs::runBp10"(BP10_PAYMENTS => bp10Out1);
+				
+		select max("TIMESTAMP") into BP10maxTStamp from :bp10Out1;
+		select min("TIMESTAMP") into BP10minTStamp from :bp10Out1;
+		
+		BP10timeDifference := NANO100_BETWEEN(:BP10minTStamp,:BP10maxTStamp)/10000000;
+
+		bp10TestRunTimeAr[2] := :BP10timeDifference;
+		bp10TestNameAr[2] := :currentTestname;
+		bp10TestDataVolumeAr[2] := :currentDataVolume;
+
+	
+	-- 15 batches
+		currentTestName := '15 Batch Procedure';
+		
+		CALL "test_2.db.procs::runBp15"(BP15_PAYMENTS => bp15Out1);
+				
+		select max("TIMESTAMP") into BP15maxTStamp from :bp15Out1;
+		select min("TIMESTAMP") into BP15minTStamp from :bp15Out1;
+		
+		BP15timeDifference := NANO100_BETWEEN(:BP15minTStamp,:BP15maxTStamp)/10000000;
+
+		bp15TestRunTimeAr[2] := :BP15timeDifference;
+		bp15TestNameAr[2] := :currentTestname;
+		bp15TestDataVolumeAr[2] := :currentDataVolume;
+	
+	
+	-- 20 batches
+		currentTestName := '20 Batch Procedure';
+
+		CALL "test_2.db.procs::runBp20"(BP20_PAYMENTS => bp20Out1);
+				
+		select max("TIMESTAMP") into BP20maxTStamp from :bp20Out1;
+		select min("TIMESTAMP") into BP20minTStamp from :bp20Out1;
+		
+		BP20timeDifference := NANO100_BETWEEN(:BP20minTStamp,:BP20maxTStamp)/10000000;
+
+
+		bp20TestRunTimeAr[2] := :BP20timeDifference;
+		bp20TestNameAr[2] := :currentTestname;
+		bp20TestDataVolumeAr[2] := :currentDataVolume;
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	mmResults = unnest(:mmTestNameAr, :mmTestDataVolumeAr ,:mmTestRuntimeAr) as ("TEST_NAME", "DATA_VOLUME", "RUNTIME");
+	bp5Results = unnest(:bp5TestNameAr, :bp5TestDataVolumeAr ,:bp5TestRuntimeAr) as ("TEST_NAME", "DATA_VOLUME", "RUNTIME");
+	bp10Results = unnest(:bp10TestNameAr, :bp10TestDataVolumeAr ,:bp10TestRuntimeAr) as ("TEST_NAME", "DATA_VOLUME", "RUNTIME");
+	bp15Results = unnest(:bp15TestNameAr, :bp15TestDataVolumeAr ,:bp15TestRuntimeAr) as ("TEST_NAME", "DATA_VOLUME", "RUNTIME");
+	bp20Results = unnest(:bp20TestNameAr, :bp20TestDataVolumeAr ,:bp20TestRuntimeAr) as ("TEST_NAME", "DATA_VOLUME", "RUNTIME");
+	
+	test_results = select * from :mmResults
+				UNION ALL select * from :bp5Results
+				UNION ALL select * from :bp10Results
+				UNION ALL select * from :bp15Results
+				UNION ALL select * from :bp20Results
+				UNION ALL select * from :test_results;
+				
+	select * from :bp20Out1;
+	
+	
+	
+END

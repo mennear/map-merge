@@ -1,0 +1,564 @@
+
+namespace test_2.db.tables;
+/*
+using "test_2.db.tables::CfgConfig" as cfgConfig;
+using "test_2.db.tables::GeneralSysConfig" as generalSysConfig;
+using "test_2.db.tables::MkdConfig" as mkdConfig;
+*/
+context CashFlowEngine {
+/**
+* This table stores incoming information on contracts in conditions form
+*/
+
+
+entity MINI_CONDITIONS {
+    key ID: Integer generated always as identity (start with 1 increment by 1 );
+
+    /**
+    * Unique contract identifier
+    */
+    CONTRACT_ID: String(40) default '' not null;
+    
+        /**
+    * Start date of contract
+    */
+    START_DATE: LocalDate default '0001-01-01' not null;
+    
+    /**
+    * Maturity date of contract
+    */
+    END_DATE: LocalDate default '0001-01-01' not null;
+    
+    /**
+    * current balance of contract
+    */
+    BALANCE: Double  default 0 not null;
+    
+    /**
+    * Either the fixed interest rate or (floaters) the interest rate for the upcoming payment
+    */
+    INTEREST_RATE: Double  default 0 not null;
+    
+
+    
+    
+    /**
+    * batch number for parallelization
+    */
+    BATCH: Integer  default 0 not null;
+
+
+};
+
+
+
+
+entity CONDITIONS {
+    key ID: Integer generated always as identity (start with 1 increment by 1 );
+
+    /**
+    * Marks the beginning of business date validity. Is inclusive
+    */
+    BUSINESS_DATE_FROM: LocalDate default '0001-01-01' not null; 
+    
+    /**
+    * Marks the end of business date validity. Is exclusive
+    */
+
+    BUSINESS_DATE_TO: LocalDate default '0001-01-01' not null;
+    
+    /**
+    * Stores the system time of load
+    */
+    TIMESTAMP_FROM: UTCTimestamp default '0001-01-01 00:00:00.0000000' not null;
+    
+    /**
+    * Stores system time up to which the row is valid. 
+    */
+    TIMESTAMP_TO: UTCTimestamp default '0001-01-01 00:00:00.0000000' not null;
+    
+    /**
+    * Unique contract identifier
+    */
+    CONTRACT_ID: String(40) default '' not null;
+    
+    /**
+    * Source system identifier
+    */
+    SRC_ID: String(20)  default '' not null;
+    
+    
+    // Doubles
+    
+    /**
+    * Nominal amount
+    */
+    NOMINAL_AMOUNT: Double default 0 not null;
+    
+    /**
+    * current balance of contract
+    */
+    BALANCE: Double  default 0 not null;
+    
+    /**
+    * Either the fixed interest rate or (floaters) the interest rate for the upcoming payment
+    */
+    INTEREST_RATE: Double  default 0 not null;
+    
+    /**
+    * Spread (floaters)
+    */
+    INTEREST_SPREAD: Double  default 0 not null;
+    
+    /**
+    * Amount of fixed payments (e.g. annuity loans)
+    */
+    PAYMENT_AMOUNT: Double  default 0 not null;
+    
+    // Integers
+    
+    /**
+    * 1 - actual
+    * 2 - 360
+    */
+    // DAYCOUNT_NUMERATOR: association to generalSysConfig.DAYCOUNTS;
+    
+    /**
+    * 1 - actual
+    * 2 - 360
+    * 3 - 365
+    * 4 - 366
+    */
+    // DAYCOUNT_DENOMINATOR: association to generalSysConfig.DAYCOUNTS;
+    /**
+    * time period between two periodic principal payments (unit defined below)
+    */
+    PERIOD_PRINCIPAL: Integer  default 0 not null;
+    
+    /**
+    * time period between two period interest payments (unit defined below)
+    */
+    PERIOD_INTEREST: Integer  default 0 not null;
+    
+    /**
+    * specifies the term, which is used from reference yield curve
+    */
+    REFERENCE_RATE_TERM: Integer  default 0 not null;
+    
+    /**
+    * batch number for parallelization
+    */
+    BATCH: Integer  default 0 not null;
+
+    // Dates
+    
+    /**
+    * Start date of contract
+    */
+    START_DATE: LocalDate default '0001-01-01' not null;
+    
+    /**
+    * Maturity date of contract
+    */
+    END_DATE: LocalDate default '0001-01-01' not null;
+    
+    /**
+    * Day on which first interest period begins
+    */
+    START_DATE_INTEREST: LocalDate default '0001-01-01' not null;
+    
+    /**
+    * End date of last interest period
+    */
+    END_DATE_INTEREST: LocalDate default '0001-01-01' not null;
+    
+    /**
+    * Day of first principal payment
+    */
+    FIRST_PAYMENT_DATE: LocalDate default '0001-01-01' not null;
+    
+    /**
+    * Day of first interest payment
+    */
+    FIRST_PAYMENT_DATE_INTEREST: LocalDate default '0001-01-01' not null;
+    
+    /**
+    * Day of initial disbursement
+    */
+    DISBURSEMENT_DATE: LocalDate default '0001-01-01' not null;
+
+    // Other
+    
+    /**
+    * Specifies the repayment type: 
+    * A - annuity
+    * Z - Zerobond
+    * P - fixed principal
+    * F - interest only
+    */
+    REPAYMENT_TYPE: String(1)  default '' not null;
+    
+    /**
+    * Unit for PERIOD_PRINCIPAL
+    */
+    PERIOD_PRINCIPAL_UNIT: String(1)  default '' not null;
+    
+    /**
+    * Unit for PERIOD_INTEREST
+    */
+    PERIOD_INTEREST_UNIT: String(1)  default '' not null;
+    
+    /**
+    * Indicates if payments happen on the last day of the month
+    */
+    LAST_DAY_INDICATOR: String(1)  default '' not null;
+    
+    /**
+    * Name of reference rate (floaters)
+    */
+    REFERENCE_RATE: String(30)  default '' not null;
+
+    // Attributes
+
+    //General
+    
+    /**
+    * Product type - E.g. LOAN, DEPOSIT, ..
+    */
+    PRODUCT_TYPE: String(20)  default '' not null;
+    
+    /**
+    * Product sub-type
+    */
+    PRODUCT_SUBTYPE: String(20)  default '' not null;
+    
+    /**
+    * Structured Product Type
+    */
+    STRUCTURED_PRODUCT_TYPE: String(20)  default '' not null;
+    
+    /**
+    * Asset Category
+    */
+    ASSET_CATEGORY: String(5)  default '' not null;
+    
+    /**
+    * Transaction Category - E.g. is deposit account a transactional account
+    */
+    TRANSACTION_CATEGORY: String(2)  default '' not null;
+    
+    /**
+    * Is the contract collaterized
+    */
+    COLLATERALIZED: hana.TINYINT default 0 not null;
+    
+    /**
+    * Is the contract encumbered
+    */
+    ENCUMBERED: hana.TINYINT default 0 not null;
+    
+    /**
+    * Is the contract insured (in a non-collateral way)
+    */
+    INSURED: hana.TINYINT default 0 not null;
+
+    
+    /**
+    * Legal entity
+    */
+
+    LEGAL_ENTITY: String(30) default '' not null;
+    
+    /**
+    * Country
+    */
+    COUNTRY: String(20) default '' not null;
+    
+    /**
+    * State
+    */
+    STATE: String(20) default '' not null;
+
+    // Accounting
+    
+    /**
+    * Profit center
+    */
+    PROFIT_CENTER: String(30) default '' not null;
+    
+    /**
+    * off-balance sheet indicator
+    */
+    OFF_BALANCE_SHEET: hana.TINYINT default 0 not null;
+    
+    /**
+    * true - asset
+    * false - liability
+    */
+    ASSET_LIABILITY: hana.TINYINT default 0 not null;
+
+    // Business Partner
+    
+    /**
+    * Business partner identifier
+    */
+    COUNTER_PARTY_ID: String(30) default '' not null;
+    
+    /**
+    * Classification of business partner
+    */
+    COUNTER_PARTY_CLASSIFICATION: String(30) default '' not null;
+    
+    /**
+    * Country of Business Partner
+    */
+    COUNTER_PARTY_COUNTRY: String(20) default '' not null;
+    
+    /**
+    * State of Business Partner
+    */
+    COUNTER_PARTY_STATE: String(20) default ''  not null;
+    
+        /**
+    * The currency 
+    */
+    CURRENCY: String(5) default '' not null;
+
+
+};
+
+
+
+
+entity CASHFLOWS {
+    key id: Integer generated always as identity (start with 1 increment by 1 );
+
+    
+    /**
+    * Marks the beginning of business date validity. Is inclusive
+    */
+    BUSINESS_DATE_FROM: LocalDate  default '0001-01-01' not null; 
+    
+    /**
+    * Marks the end of business date validity. Is exclusive
+    */
+
+    BUSINESS_DATE_TO: LocalDate default '0001-01-01' not null;
+    
+    /**
+    * Stores the system time of load
+    */
+    TIMESTAMP_FROM: UTCTimestamp default '0001-01-01 00:00:00.0000000' not null;
+    
+    /**
+    * Stores system time up to which the row is valid. 
+    */
+    TIMESTAMP_TO: UTCTimestamp default '0001-01-01 00:00:00.0000000' not null;
+    
+    /**
+    * Unique contract identifier
+    */
+    CONTRACT_ID: String(40) default '' not null;
+    
+    /**
+    * Enumerates cash flow items belonging to one CONTRACT_ID
+    */
+    ITEM_NUMBER: Integer default 0 not null;
+    
+    /**
+    * Payment Date
+    */
+    PAYMENT_DATE: LocalDate default '0001-01-01' not null;
+    
+    /**
+    * Interest Amount
+    */
+    AMOUNT_INTEREST: Double default 0 not null;
+    
+    /**
+    * Principal Amount
+    */
+    AMOUNT_PRINCIPAL: Double default 0 not null;
+    
+    /**
+    * Currency code
+    */
+    CURRENCY: String(5) default '' not null;
+    
+    /**
+    * Remaining balance (e.g. for loans)
+    */
+    OUTSTANDING_BALANCE: Double default 0 not null;
+
+     // Attributes
+
+    //General
+    
+    /**
+    * Product type - E.g. LOAN, DEPOSIT, ..
+    */
+    PRODUCT_TYPE: String(20) default '' not null;
+    
+    /**
+    * Product sub-type
+    */
+    PRODUCT_SUBTYPE: String(20) default '' not null;
+    
+    /**
+    * Structured Product Type
+    */
+    STRUCTURED_PRODUCT_TYPE: String(20) default '' not null;
+    
+    /**
+    * Asset Category
+    */
+    ASSET_CATEGORY: String(5) default '' not null;
+    
+    /**
+    * Transaction Category - E.g. is deposit account a transactional account
+    */
+    TRANSACTION_CATEGORY: String(2) default '' not null;
+    
+    /**
+    * Is the contract collaterized
+    */
+    COLLATERALIZED: hana.TINYINT default 0 not null;
+    
+    /**
+    * Is the contract encumbered
+    */
+    ENCUMBERED: hana.TINYINT default 0 not null;
+
+    
+    /**
+    * Is the contract insured (in a non-collateral way)
+    */
+    INSURED: hana.TINYINT default 0 not null;
+   
+    /**
+    * Legal entity
+    */
+    LEGAL_ENTITY: String(30) default '' not null;
+    
+    /**
+    * Country
+    */
+    COUNTRY: String(20) default '' not null;
+    
+    /**
+    * State
+    */
+    STATE: String(20) default '' not null;
+
+    
+    /**
+    * Source system identifier
+    */
+    SRC_ID: String(30) default '' not null;
+    
+    /**
+    * Interest rate used for this payment period
+    */
+	INTEREST_RATE: Double default 0 not null;
+	
+	/**
+    * Spread (floaters)
+    */
+	INTEREST_SPREAD: Double default 0 not null;
+	
+	/**
+    * batch number for parallelization
+    */
+	BATCH: Integer default 0 not null;
+	
+	/**
+    * Start date of contract
+    */
+	START_DATE:  LocalDate default '0001-01-01' not null;
+	
+	/**
+    * Maturity date of contract
+    */
+	END_DATE: LocalDate default '0001-01-01' not null;
+	
+	/**
+    * Name of reference rate (floaters)
+    */
+	REFERENCE_RATE: String(30) default '' not null;
+	
+	/**
+	* Hash value used to perform delta loading
+	*/
+	HASH_KEY: Binary(500) default '' not null;
+    // Accounting
+    
+    /**
+    * Profit center
+    */
+    PROFIT_CENTER: String(30) default '' not null;
+    
+    /**
+    * off-balance sheet indicator
+    */
+    OFF_BALANCE_SHEET: hana.TINYINT default 0 not null;
+    
+    /**
+    * true - asset
+    * false - liability
+    */
+    ASSET_LIABILITY: hana.TINYINT default 0 not null;
+
+    // Business Partner
+    
+    /**
+    * Business partner identifier
+    */
+    COUNTER_PARTY_ID: String(30) default '' not null;
+    
+    /**
+    * Classification of business partner
+    */
+    COUNTER_PARTY_CLASSIFICATION: String(30) default '' not null;
+    
+    /**
+    * Country of Business Partner
+    */
+    COUNTER_PARTY_COUNTRY: String(20) default '' not null;
+    
+    /**
+    * State of Business Partner
+    */
+    COUNTER_PARTY_STATE: String(20) default '' not null;
+        /**
+    * Run Id
+    */
+	RUN_ID: String(100) default '' not null;
+	 /**
+    /**
+    * cash flow scenario name
+    */
+	SCENARIO_NAME: String(20) default '' not null;
+	/**
+    * run set name
+    */
+	RUN_SET_NAME: String(20) default '' not null;
+	/**
+    * Ir shock scenario name
+    */
+	IR_SHOCK_SCENARIO_NAME: String(100) default '';
+};
+
+
+
+ entity DUMMY_ROW {
+
+        key "COUNTER" : Integer default 0 not null;
+    }
+    technical configuration {
+        column store;
+    };
+
+
+
+
+};

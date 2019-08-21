@@ -1,0 +1,89 @@
+PROCEDURE "test_2.db.procs::miniCustConditionsLoad"( in max_rows int , out conditions_count int )
+   LANGUAGE SQLSCRIPT
+   SQL SECURITY INVOKER
+   --DEFAULT SCHEMA <default_schema_name>
+   --READS SQL DATA 
+   AS
+BEGIN
+
+	declare i,max_id int;
+	declare Ai_counter int array;
+	declare pre_count integer;
+	declare post_count integer;
+	
+	delete from "test_2.db.tables::CashFlowEngine.DUMMY_ROW";
+	CALL "test_2.db.procs::clearMiniConditionsTable"();
+	
+	max_id := 1000;
+	
+	for i in 1 .. :max_rows do
+	
+		ai_counter[:i] := :i;
+	
+	end for; 
+ 
+	
+ 
+	tmp = unnest (:ai_counter) as ("COUNTER");
+	insert into "test_2.db.tables::CashFlowEngine.DUMMY_ROW"("COUNTER") select "COUNTER" from :tmp;
+	
+	tmpContracts = 
+ 
+		select 
+			to_nvarchar(lpad(:max_id+ "COUNTER",20,'0')) as "CONTRACT_ID",
+			"START_DATE",
+			add_days('2018-01-01',100 + "RAND1"*5000) as  "END_DATE",
+			ROUND("RAND2"*0.15,5) as "INTEREST_RATE",
+			ROUND(100 + "RAND3"*9999900, 2) as "BALANCE",
+			ROUND("RAND4"*99)+1 as "BATCH"
+			
+		FROM 
+			(
+				SELECT
+							"COUNTER", 
+							'2018-01-01' as  "START_DATE",
+							rand() as "RAND1", 
+							rand() as "RAND2",
+							rand() as "RAND3", 
+							rand() as "RAND4"
+						from "test_2.db.tables::CashFlowEngine.DUMMY_ROW"
+					)
+			;
+
+	select count(*) into pre_count from "test_2.db.tables::CashFlowEngine.MINI_CONDITIONS";
+		
+		
+	
+			insert into "test_2.db.tables::CashFlowEngine.MINI_CONDITIONS"(
+			
+				"CONTRACT_ID",
+				"BALANCE",
+				"INTEREST_RATE",
+				"BATCH",
+				"START_DATE",
+				"END_DATE"
+				
+		 )
+		 
+			select 
+				
+				"CONTRACT_ID",
+				"BALANCE",
+				"INTEREST_RATE",
+				"BATCH",
+				"START_DATE",
+				"END_DATE"
+				
+			from
+			
+				:tmpContracts;
+		
+			
+		
+		
+			select count(*) into post_count from "test_2.db.tables::CashFlowEngine.MINI_CONDITIONS";
+		
+	conditions_count:= :post_count - :pre_count;
+
+
+END

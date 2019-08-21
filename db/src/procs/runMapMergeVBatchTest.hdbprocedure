@@ -1,0 +1,419 @@
+PROCEDURE "test_2.db.procs::runMapMergeVBatchTest"(out test_results table("TEST_NAME" nvarchar(40), "DATA_VOLUME" int, "RUNTIME" double))
+   LANGUAGE SQLSCRIPT
+   SQL SECURITY INVOKER
+   --DEFAULT SCHEMA <default_schema_name>
+   --READS SQL DATA 
+   AS
+BEGIN
+   /*************************************
+       Write your procedure logic 
+   *************************************/
+   
+   declare count_out, i, currentDataVolume int;
+   declare mmRuntime10K, mmRuntime15K, mmRuntime20K, mmRuntime25K, mmRuntime30K, mmRuntime50K double;
+   declare b5Runtime10K, b5Runtime15K, b5Runtime20K, b5Runtime25K, b5Runtime30K, b5Runtime50K double;
+   declare b10Runtime10K, b10Runtime15K, b10Runtime20K, b10Runtime25K, b10Runtime30K, b10Runtime50K double;
+   declare b15Runtime10K, b15Runtime15K, b15Runtime20K, b15Runtime25K, b15Runtime30K, b15Runtime50K double;
+   declare b20Runtime10K, b20Runtime15K, b20Runtime20K, b20Runtime25K, b20Runtime30K, b20Runtime50K double;
+   declare dataVolumeArray int array = ARRAY(500, 700, 900, 1100, 1300, 1500, 1700, 2000);
+   --declare dataVolumeArray int array = ARRAY(10000,15000,20000,25000,30000,50000);
+   declare MMtimeDifference double;
+      declare BP5timeDifference double;
+         declare BP10timeDifference double;
+            declare BP15timeDifference double;
+               declare BP20timeDifference double;
+   declare MMminTStamp, MMmaxTStamp timestamp;
+      declare BP5minTStamp, BP5maxTStamp timestamp;
+         declare BP10minTStamp, BP10maxTStamp timestamp;
+            declare BP15minTStamp, BP15maxTStamp timestamp;
+               declare BP20minTStamp, BP20maxTStamp timestamp;
+   declare currentTestName nvarchar(40);
+   declare mmTestNameAr nvarchar(40) array;
+   declare mmTestRuntimeAr double array;
+   declare mmTestDataVolumeAr int array;
+   declare bp5TestNameAr nvarchar(40) array;
+   declare bp5TestRuntimeAr double array;
+   declare bp5TestDataVolumeAr int array;
+   declare bp10TestNameAr nvarchar(40) array;
+   declare bp10TestRuntimeAr double array;
+   declare bp10TestDataVolumeAr int array;
+      declare bp15TestNameAr nvarchar(40) array;
+   declare bp15TestRuntimeAr double array;
+   declare bp15TestDataVolumeAr int array;
+      declare bp20TestNameAr nvarchar(40) array;
+   declare bp20TestRuntimeAr double array;
+   declare bp20TestDataVolumeAr int array;
+   
+	
+	--clear dummy_row and insert 1 row
+	delete from "test_2.db.tables::CashFlowEngine.DUMMY_ROW";
+	insert into "test_2.db.tables::CashFlowEngine.DUMMY_ROW" values(1);
+	
+	
+	--resultsTableTemplate = select 'Map Merge' as "TEST_NAME", :currentDataVolume as "DATA_VOLUME", 10 as "RUNTIME" from "test_2.db.tables::CashFlowEngine.DUMMY_ROW";
+	
+	--testResults = select 'Map Merge' as "TEST_NAME", :currentDataVolume as "DATA_VOLUME", 10 as "RUNTIME" from "test_2.db.tables::CashFlowEngine.DUMMY_ROW";
+	--need to make sure to run each (map merge, 5batch, 10batch, 15batch, 20batch in same iteration of for loop)
+	
+	for i in 1..cardinality(:dataVolumeArray) do
+	
+		delete from "test_2.db.tables::CashFlowEngine.DUMMY_ROW";
+		insert into "test_2.db.tables::CashFlowEngine.DUMMY_ROW" values(1);
+	
+	
+		currentDataVolume := :dataVolumeArray[:i];
+	
+	    CALL "test_2.db.procs::clearMiniConditionsTable"();
+		CALL "test_2.db.procs::miniCustConditionsLoad"(MAX_ROWS => :currentDataVolume/*<INTEGER>*/,CONDITIONS_COUNT => count_out);
+	
+		allConditions = select * from "test_2.db.tables::CashFlowEngine.MINI_CONDITIONS";
+	
+	
+	
+	
+	
+		-- run mapmerge function here
+		currentTestName := 'Map Merge';
+		
+		mmOutput = 
+		MAP_MERGE(:allConditions ,"test_2.db.functions::fixedPrincipalSmall"(:allConditions."CONTRACT_ID"/*CURRENTCONTRACTID <NVARCHAR(40)>*/,
+                                                                           :allConditions."START_DATE"/*CURRENTSTARTDATE <DATE>*/,
+                                                                           :allConditions."END_DATE"/*CURRENTENDDATE <DATE>*/,
+                                                                           :allConditions."INTEREST_RATE"/*CURRENTINTERESTRATE <DOUBLE>*/,
+                                                                           :allConditions."BALANCE"/*CURRENTBALANCE <DOUBLE>*/));
+		select * from :mmOutput;
+		
+		select max("TIMESTAMP") into MMmaxTStamp from :mmOutput;
+		select min("TIMESTAMP") into MMminTStamp from :mmOutput;
+		
+		--timeDifference := NANO100_BETWEEN(:minTStamp,:maxTStamp);
+		MMtimeDifference := NANO100_BETWEEN(:MMminTStamp,:MMmaxTStamp)/10000000;
+		--timeDifference := seconds_BETWEEN(:minTStamp,:maxTStamp);
+		
+		
+		mmTestRunTimeAr[:i] := :MMtimeDifference;
+		mmTestNameAr[:i] := :currentTestname;
+		mmTestDataVolumeAr[:i] := :currentDataVolume;
+		
+		
+
+	-- 5 batches
+		currentTestName := '5 Batch Procedure';
+		
+		first = 
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(1/*BATCH_MIN <INTEGER>*/,
+		                                                                                      20/*BATCH_MAX <INTEGER>*/);
+		second = 
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(21/*BATCH_MIN <INTEGER>*/,
+		                                                                                      40/*BATCH_MAX <INTEGER>*/);
+		third =                                                                                       
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(41/*BATCH_MIN <INTEGER>*/,
+		                                                                                      60/*BATCH_MAX <INTEGER>*/);
+		fourth =                                                                                      
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(61/*BATCH_MIN <INTEGER>*/,
+		                                                                                      80/*BATCH_MAX <INTEGER>*/);
+		fifth =                                                                             
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(81/*BATCH_MIN <INTEGER>*/,
+		                                                                                      100/*BATCH_MAX <INTEGER>*/);
+                                                                                      
+        bp5=                                                                              
+        select * from :first
+        union all select * from :second
+        union all select * from :third
+        union all select * from :fourth
+        union all select * from :fifth;
+		
+		select * from :bp5;
+		
+		select max("TIMESTAMP") into BP5maxTStamp from :bp5;
+		select min("TIMESTAMP") into BP5minTStamp from :bp5;
+		
+		BP5timeDifference := NANO100_BETWEEN(:BP5minTStamp,:BP5maxTStamp)/10000000;
+		--timeDifference := seconds_BETWEEN(:minTStamp,:maxTStamp);
+		
+		bp5TestRunTimeAr[:i] := :BP5timeDifference;
+		bp5TestNameAr[:i] := :currentTestname;
+		bp5TestDataVolumeAr[:i] := :currentDataVolume;
+		
+		
+
+	-- 10 batches
+		currentTestName := '10 Batch Procedure';
+		
+		
+		first = 
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(1/*BATCH_MIN <INTEGER>*/,
+		                                                                                      10/*BATCH_MAX <INTEGER>*/);
+		second = 
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(11/*BATCH_MIN <INTEGER>*/,
+		                                                                                      20/*BATCH_MAX <INTEGER>*/);
+		third =                                                                                       
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(21/*BATCH_MIN <INTEGER>*/,
+		                                                                                      30/*BATCH_MAX <INTEGER>*/);
+		fourth =                                                                                      
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(31/*BATCH_MIN <INTEGER>*/,
+		                                                                                      40/*BATCH_MAX <INTEGER>*/);
+		fifth =                                                                             
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(41/*BATCH_MIN <INTEGER>*/,
+		                                                                                      50/*BATCH_MAX <INTEGER>*/);
+		                                                                      
+		sixth = 
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(51/*BATCH_MIN <INTEGER>*/,
+		                                                                                      60/*BATCH_MAX <INTEGER>*/);
+		seventh = 
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(61/*BATCH_MIN <INTEGER>*/,
+		                                                                                      70/*BATCH_MAX <INTEGER>*/);
+		eighth =                                                                                       
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(71/*BATCH_MIN <INTEGER>*/,
+		                                                                                      80/*BATCH_MAX <INTEGER>*/);
+		ninth =                                                                                      
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(81/*BATCH_MIN <INTEGER>*/,
+		                                                                                      90/*BATCH_MAX <INTEGER>*/);
+		tenth =                                                                             
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(91/*BATCH_MIN <INTEGER>*/,
+		                                                                                      100/*BATCH_MAX <INTEGER>*/);
+        bp10 =                                                                              
+        select * from :first
+        union all select * from :second
+        union all select * from :third
+        union all select * from :fourth
+        union all select * from :fifth
+        union all select * from :sixth
+        union all select * from :seventh
+        union all select * from :eighth
+        union all select * from :ninth
+        union all select * from :tenth;
+	
+		select * from :bp10;
+				
+		select max("TIMESTAMP") into BP10maxTStamp from :bp10;
+		select min("TIMESTAMP") into BP10minTStamp from :bp10;
+		
+		BP10timeDifference := NANO100_BETWEEN(:BP10minTStamp,:BP10maxTStamp)/10000000;
+		--timeDifference := seconds_BETWEEN(:minTStamp,:maxTStamp);
+		
+		
+		bp10TestRunTimeAr[:i] := :BP10timeDifference;
+		bp10TestNameAr[:i] := :currentTestname;
+		bp10TestDataVolumeAr[:i] := :currentDataVolume;
+	
+	
+	
+	
+	-- 15 batches
+		currentTestName := '15 Batch Procedure';
+		
+		
+		
+		first = 
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(1/*BATCH_MIN <INTEGER>*/,
+		                                                                                      7/*BATCH_MAX <INTEGER>*/);
+		second = 
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(8/*BATCH_MIN <INTEGER>*/,
+		                                                                                      14/*BATCH_MAX <INTEGER>*/);
+		third =                                                                                       
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(15/*BATCH_MIN <INTEGER>*/,
+		                                                                                      21/*BATCH_MAX <INTEGER>*/);
+		fourth =                                                                                      
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(22/*BATCH_MIN <INTEGER>*/,
+		                                                                                      28/*BATCH_MAX <INTEGER>*/);
+		fifth =                                                                             
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(29/*BATCH_MIN <INTEGER>*/,
+		                                                                                      35/*BATCH_MAX <INTEGER>*/);
+		                                                                  
+		sixth = 
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(36/*BATCH_MIN <INTEGER>*/,
+		                                                                                      42/*BATCH_MAX <INTEGER>*/);
+		seventh = 
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(43/*BATCH_MIN <INTEGER>*/,
+		                                                                                      49/*BATCH_MAX <INTEGER>*/);
+		eighth =                                                                                       
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(50/*BATCH_MIN <INTEGER>*/,
+		                                                                                      56/*BATCH_MAX <INTEGER>*/);
+		ninth =                                                                                      
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(57/*BATCH_MIN <INTEGER>*/,
+		                                                                                      63/*BATCH_MAX <INTEGER>*/);
+		tenth =                                                                             
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(64/*BATCH_MIN <INTEGER>*/,
+		                                                                                     70/*BATCH_MAX <INTEGER>*/);
+		                                                                                    
+		eleventh =                                                                             
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(71/*BATCH_MIN <INTEGER>*/,
+		                                                                                      76/*BATCH_MAX <INTEGER>*/);
+		twelfth =                                                                             
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(77/*BATCH_MIN <INTEGER>*/,
+		                                                                                      82/*BATCH_MAX <INTEGER>*/);                                                                                      
+		                                                                                   
+		thirteenth =                                                                             
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(83/*BATCH_MIN <INTEGER>*/,
+		                                                                                      88/*BATCH_MAX <INTEGER>*/);
+		                                                                                    
+		fourteenth =                                                                             
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(89/*BATCH_MIN <INTEGER>*/,
+		                                                                                      95/*BATCH_MAX <INTEGER>*/);
+		                                                                                    
+		fifteenth =                                                                             
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(96/*BATCH_MIN <INTEGER>*/,
+		                                                                                      100/*BATCH_MAX <INTEGER>*/);                                                                                      
+        
+        bp15 =                                                                              
+        select * from :first
+        union all select * from :second
+        union all select * from :third
+        union all select * from :fourth
+        union all select * from :fifth
+        union all select * from :sixth
+        union all select * from :seventh
+        union all select * from :eighth
+        union all select * from :ninth
+        union all select * from :tenth
+        union all select * from :eleventh
+        union all select * from :twelfth
+        union all select * from :thirteenth
+        union all select * from :fourteenth
+        union all select * from :fifteenth;
+        
+                              
+		select * from :bp15;
+		
+		select max("TIMESTAMP") into BP15maxTStamp from :bp15;
+		select min("TIMESTAMP") into BP15minTStamp from :bp15;
+		
+		BP15timeDifference := NANO100_BETWEEN(:BP15minTStamp,:BP15maxTStamp)/10000000;
+		--timeDifference := seconds_BETWEEN(:minTStamp,:maxTStamp);
+		
+		
+		bp15TestRunTimeAr[:i] := :BP15timeDifference;
+		bp15TestNameAr[:i] := :currentTestname;
+		bp15TestDataVolumeAr[:i] := :currentDataVolume;
+		
+	
+	
+	
+	-- 20 batches
+		currentTestName := '20 Batch Procedure';
+
+		
+		first = 
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(1/*BATCH_MIN <INTEGER>*/,
+		                                                                                      5/*BATCH_MAX <INTEGER>*/);
+		second = 
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(6/*BATCH_MIN <INTEGER>*/,
+		                                                                                      10/*BATCH_MAX <INTEGER>*/);
+		third =                                                                                       
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(11/*BATCH_MIN <INTEGER>*/,
+		                                                                                      15/*BATCH_MAX <INTEGER>*/);
+		fourth =                                                                                      
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(16/*BATCH_MIN <INTEGER>*/,
+		                                                                                      20/*BATCH_MAX <INTEGER>*/);
+		fifth =                                                                             
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(21/*BATCH_MIN <INTEGER>*/,
+		                                                                                      25/*BATCH_MAX <INTEGER>*/);
+		                                                                      
+		sixth = 
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(26/*BATCH_MIN <INTEGER>*/,
+		                                                                                      30/*BATCH_MAX <INTEGER>*/);
+		seventh = 
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(31/*BATCH_MIN <INTEGER>*/,
+		                                                                                      35/*BATCH_MAX <INTEGER>*/);
+		eighth =                                                                                       
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(36/*BATCH_MIN <INTEGER>*/,
+		                                                                                      40/*BATCH_MAX <INTEGER>*/);
+		ninth =                                                                                      
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(41/*BATCH_MIN <INTEGER>*/,
+		                                                                                      45/*BATCH_MAX <INTEGER>*/);
+		tenth =                                                                             
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(46/*BATCH_MIN <INTEGER>*/,
+		                                                                                      50/*BATCH_MAX <INTEGER>*/);
+		firstB = 
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(1/*BATCH_MIN <INTEGER>*/,
+		                                                                                      5/*BATCH_MAX <INTEGER>*/);
+		secondB = 
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(6/*BATCH_MIN <INTEGER>*/,
+		                                                                                      10/*BATCH_MAX <INTEGER>*/);
+		thirdB =                                                                                       
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(11/*BATCH_MIN <INTEGER>*/,
+		                                                                                      15/*BATCH_MAX <INTEGER>*/);
+		fourthB =                                                                                      
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(16/*BATCH_MIN <INTEGER>*/,
+		                                                                                      20/*BATCH_MAX <INTEGER>*/);
+		fifthB =                                                                             
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(21/*BATCH_MIN <INTEGER>*/,
+		                                                                                      25/*BATCH_MAX <INTEGER>*/);
+		                                                                      
+		sixthB = 
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(26/*BATCH_MIN <INTEGER>*/,
+		                                                                                      30/*BATCH_MAX <INTEGER>*/);
+		seventhB = 
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(31/*BATCH_MIN <INTEGER>*/,
+		                                                                                      35/*BATCH_MAX <INTEGER>*/);
+		eighthB =                                                                                       
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(36/*BATCH_MIN <INTEGER>*/,
+		                                                                                      40/*BATCH_MAX <INTEGER>*/);
+		ninthB =                                                                                      
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(41/*BATCH_MIN <INTEGER>*/,
+		                                                                                      45/*BATCH_MAX <INTEGER>*/);
+		tenthB =                                                                             
+		SELECT * FROM "test_2.db.functions::fixedPrinSmallWrapProcForBatch"(46/*BATCH_MIN <INTEGER>*/,
+		                                                                                      50/*BATCH_MAX <INTEGER>*/);                                                                                 
+        bp20 =                                                                              
+        select * from :first
+        union all select * from :second
+        union all select * from :third
+        union all select * from :fourth
+        union all select * from :fifth
+        union all select * from :sixth
+        union all select * from :seventh
+        union all select * from :eighth
+        union all select * from :ninth
+        union all select * from :tenth
+        union all select * from :firstB
+        union all select * from :secondB
+        union all select * from :thirdB
+        union all select * from :fourthB
+        union all select * from :fifthB
+        union all select * from :sixthB
+        union all select * from :seventhB
+        union all select * from :eighthB
+        union all select * from :ninthB
+        union all select * from :tenthB;
+	
+	
+		select * from :bp20;
+	
+		select max("TIMESTAMP") into BP20maxTStamp from :bp20;
+		select min("TIMESTAMP") into BP20minTStamp from :bp20;
+		
+		BP20timeDifference := NANO100_BETWEEN(:BP20minTStamp,:BP20maxTStamp)/10000000;
+		--timeDifference := seconds_BETWEEN(:minTStamp,:maxTStamp);
+		
+		
+		bp20TestRunTimeAr[:i] := :BP20timeDifference;
+		bp20TestNameAr[:i] := :currentTestname;
+		bp20TestDataVolumeAr[:i] := :currentDataVolume;
+	
+	
+	end for;
+	
+	select * from :bp5;
+	select * from :bp10;
+	select * from :bp15;
+	select * from :bp20;
+	select * from :mmOutput;
+	
+	mmResults = unnest(:mmTestNameAr, :mmTestDataVolumeAr ,:mmTestRuntimeAr) as ("TEST_NAME", "DATA_VOLUME", "RUNTIME");
+	bp5Results = unnest(:bp5TestNameAr, :bp5TestDataVolumeAr ,:bp5TestRuntimeAr) as ("TEST_NAME", "DATA_VOLUME", "RUNTIME");
+	bp10Results = unnest(:bp10TestNameAr, :bp10TestDataVolumeAr ,:bp10TestRuntimeAr) as ("TEST_NAME", "DATA_VOLUME", "RUNTIME");
+	bp15Results = unnest(:bp15TestNameAr, :bp15TestDataVolumeAr ,:bp15TestRuntimeAr) as ("TEST_NAME", "DATA_VOLUME", "RUNTIME");
+	bp20Results = unnest(:bp20TestNameAr, :bp20TestDataVolumeAr ,:bp20TestRuntimeAr) as ("TEST_NAME", "DATA_VOLUME", "RUNTIME");
+	
+	test_results = select * from :mmResults
+				UNION ALL select * from :bp5Results
+				UNION ALL select * from :bp10Results
+				UNION ALL select * from :bp15Results
+				UNION ALL select * from :bp20Results
+				UNION ALL select * from :test_results;
+	
+	
+	
+END

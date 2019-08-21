@@ -1,0 +1,77 @@
+FUNCTION "test_2.db.functions::fixedPrinSmallWrapProcForBatch"( in batch_min int, in batch_max int )
+       RETURNS table("CONTRACT_ID" nvarchar(40),  "PAYMENT_DATE" date, "AMOUNT_PRINCIPAL" double, "AMOUNT_INTEREST" double, "OUTSTANDING_BALANCE" double, "TIMESTAMP" timestamp)
+       LANGUAGE SQLSCRIPT 
+       SQL SECURITY INVOKER AS 
+BEGIN 
+
+
+
+declare i int;
+declare currentContractId nvarchar(40);
+declare currentStartDate, currentEndDate date;
+declare currentInterestRate, currentBalance double;
+
+
+allConditions = select * from "test_2.db.tables::CashFlowEngine.MINI_CONDITIONS"
+where "BATCH" <= :batch_max
+and "BATCH" >= :batch_min;
+
+
+-- inititalize main_out using dummy_rows (dummy_rows table is cleared and 1 row is inserted in overall logic)
+
+
+
+mainOut = 
+select 
+'test' as "CONTRACT_ID",  
+'20000101' as "PAYMENT_DATE",
+10000000000000000000011.00 as "AMOUNT_PRINCIPAL", 
+10000000000000000000011.500000 as "AMOUNT_INTEREST", 
+10000000000000000000011.000000 as "OUTSTANDING_BALANCE",
+current_timestamp as "TIMESTAMP"
+from "test_2.db.tables::CashFlowEngine.DUMMY_ROW";
+
+
+for i in 1 .. record_count(:allConditions) DO
+
+	currentContractId := :allConditions."CONTRACT_ID"[:i];
+	currentBalance := :allConditions."BALANCE"[:i];
+	currentInterestRate := :allConditions."INTEREST_RATE"[:i];
+	currentStartDate := :allConditions."START_DATE"[:i];
+	currentEndDate := :allConditions."END_DATE"[:i];
+
+	
+	CALL "test_2.db.procs::fixedPrincipalSmall"(
+		CURRENTCONTRACTID => :currentContractId/*<NVARCHAR(40)>*/,
+		CURRENTSTARTDATE => :currentStartDate/*<DATE>*/,
+		CURRENTENDDATE => :currentEndDate/*<DATE>*/,
+		CURRENTINTERESTRATE => :currentInterestRate/*<DOUBLE>*/,
+		CURRENTBALANCE => :currentBalance/*<DOUBLE>*/,
+		PAYMENTS => tblOut
+	);
+
+	
+	mainOut = select * from :tblOut
+		UNION ALL select * from :mainOut;
+/*
+				"CONTRACT_ID",
+				"BALANCE",
+				"INTEREST_RATE",
+				"BATCH",
+				"START_DATE",
+				"END_DATE"
+
+*/
+
+
+end for;
+
+--select count(*) from :mainOut;
+
+return select "CONTRACT_ID",  "PAYMENT_DATE", "AMOUNT_PRINCIPAL", "AMOUNT_INTEREST", "OUTSTANDING_BALANCE", "TIMESTAMP" from :mainOut
+		where contract_id != 'test';
+
+
+    
+    
+END;

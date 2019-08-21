@@ -1,0 +1,123 @@
+/**
+   *@memberof ifb/alm/cfe/cfg
+*/
+
+/**
+  * This function is fetching the last version of conditions,before i_businessDate and i_systemTime for each contract id
+  * @param {date} i_businessDate This is the business date, which specifies that we will fetch only the conditions that are before this date.
+  * @param {timestamp} i_systemTime - This is the system time, which specifies that we will fetch only the conditions that are before this systemTime .
+  * @param {int} i_batchMin - This is optional parameter, which specifies that we will fetch only the conditions for batch between i_batchMin and i_batchMax.
+  * @param {int} i_batchMax - This is optional parameter, which specifies that we will fetch only the conditions for batch between i_batchMin and i_batchMax.
+*/
+FUNCTION "test_2.db.functions::AccessConditions" ( 
+	in i_businessDate date,
+	in i_batchMin int default 0,
+	in i_batchMax int default 99
+)
+       RETURNS table ("BUSINESS_DATE_FROM" date,
+    				  "BUSINESS_DATE_TO" date,
+    				  "TIMESTAMP_FROM" timestamp, 
+    				  "TIMESTAMP_TO" timestamp,
+    				  "CONTRACT_ID" nvarchar(40), 
+    				  "SRC_ID" nvarchar(20), 
+    				  "NOMINAL_AMOUNT" double, 
+    				  "BALANCE" double, 
+    				  "INTEREST_RATE" double,
+       				  "INTEREST_SPREAD"double,
+       				  "PERIOD_PRINCIPAL" integer,
+       				  "PERIOD_INTEREST" integer,
+       				  "REFERENCE_RATE_TERM" integer,
+       				  "BATCH" integer,
+       				  "START_DATE" date,
+       				  "END_DATE" date,
+       				  "START_DATE_INTEREST" date,
+       				  "END_DATE_INTEREST" date,
+       				  "FIRST_PAYMENT_DATE" date,
+       				  "FIRST_PAYMENT_DATE_INTEREST" date,
+       				  "DISBURSEMENT_DATE" date,
+       				  "REPAYMENT_TYPE" nvarchar(1),
+       				  "PERIOD_PRINCIPAL_UNIT" nvarchar(1),
+       				  "PERIOD_INTEREST_UNIT" nvarchar(1),
+       				  "LAST_DAY_INDICATOR" nvarchar(1),
+       				  "REFERENCE_RATE" nvarchar(30),
+       				  "PRODUCT_TYPE" nvarchar(20),
+       				  "PRODUCT_SUBTYPE" nvarchar(20),
+       				  "STRUCTURED_PRODUCT_TYPE" nvarchar(20),
+       				  "ASSET_CATEGORY" nvarchar(5),
+       				  "TRANSACTION_CATEGORY" nvarchar(2),
+       				  "COLLATERALIZED" tinyint,
+       				  "ENCUMBERED" tinyint,
+       				  "INSURED" tinyint,
+       				  "LEGAL_ENTITY" nvarchar(30),
+       				  "COUNTRY" nvarchar(20),
+       				  "STATE" nvarchar(20),
+       				  "PROFIT_CENTER" nvarchar(30),
+       				  "OFF_BALANCE_SHEET" tinyint,
+       				  "ASSET_LIABILITY" tinyint,
+       				  "COUNTER_PARTY_ID" nvarchar(30),
+       				  "COUNTER_PARTY_CLASSIFICATION" nvarchar(30),
+       				  "COUNTER_PARTY_COUNTRY" nvarchar(20),
+       				  "COUNTER_PARTY_STATE" nvarchar(20),
+       				  "PAYMENT_AMOUNT" double,
+       				  "CURRENCY" nvarchar(5)
+       				
+       )
+       LANGUAGE SQLSCRIPT 
+       SQL SECURITY INVOKER AS 
+BEGIN 
+ 
+/*****************************  
+       Write your function logic 
+ *****************************/ 
+ return 
+ select 
+		"BUSINESS_DATE_FROM",
+		"BUSINESS_DATE_TO",
+		"TIMESTAMP_FROM", 
+		"TIMESTAMP_TO",
+		"CONTRACT_ID", 
+		"SRC_ID", 
+		"NOMINAL_AMOUNT",
+		"BALANCE", 
+		"INTEREST_RATE",
+		"INTEREST_SPREAD",
+		"PERIOD_PRINCIPAL",
+		"PERIOD_INTEREST",
+		"REFERENCE_RATE_TERM",
+		"BATCH",
+		"START_DATE",
+		"END_DATE",
+		"START_DATE_INTEREST",
+		"END_DATE_INTEREST",
+		"FIRST_PAYMENT_DATE",
+		"FIRST_PAYMENT_DATE_INTEREST",
+		"DISBURSEMENT_DATE",
+		"REPAYMENT_TYPE",
+		"PERIOD_PRINCIPAL_UNIT",
+		"PERIOD_INTEREST_UNIT",
+		"LAST_DAY_INDICATOR",
+		"REFERENCE_RATE",
+		"PRODUCT_TYPE",
+		"PRODUCT_SUBTYPE",
+		"STRUCTURED_PRODUCT_TYPE",
+		"ASSET_CATEGORY",
+		"TRANSACTION_CATEGORY",
+		"COLLATERALIZED",
+		"ENCUMBERED",
+		"INSURED",
+		"LEGAL_ENTITY",
+		"COUNTRY",
+		"STATE",
+		"PROFIT_CENTER",
+		"OFF_BALANCE_SHEET",
+		"ASSET_LIABILITY",
+		"COUNTER_PARTY_ID",
+		"COUNTER_PARTY_CLASSIFICATION",
+		"COUNTER_PARTY_COUNTRY",
+		"COUNTER_PARTY_STATE",
+		"PAYMENT_AMOUNT",
+		"CURRENCY"
+ from "test_2.db.tables::CashFlowEngine.CONDITIONS";
+ 
+ 
+END;
